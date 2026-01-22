@@ -1,0 +1,37 @@
+# Yemen Market - Android Native Project
+# NOT A FLUTTER PROJECT
+
+workflows:
+  android-native:
+    name: Android Native Build
+    environment:
+      android:
+        sdk: 34
+      groups:
+        - android_credentials
+      vars:
+        PACKAGE_NAME: "com.yemenmarket"
+    
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    
+    scripts:
+      - name: Build Android APK
+        script: |
+          echo "Building Android Native APK..."
+          chmod +x ./gradlew
+          ./gradlew clean assembleDebug
+          echo "APK location: app/build/outputs/apk/debug/app-debug.apk"
+    
+    artifacts:
+      - app/build/outputs/apk/debug/*.apk
+      - app/build/outputs/apk/release/*.apk
+    
+    publishing:
+      email:
+        recipients:
+          - almwldahmed199@gmail.com

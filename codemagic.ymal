@@ -1,0 +1,54 @@
+workflows:
+  yemen-market-workflow:
+    name: Yemen Market Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      groups:
+        - yemen_secrets   # FIREBASE_SERVICE_ACCOUNT , DISCORD_WEBHOOK
+      vars:
+        TENANT_NAME: "yemen"
+        FIREBASE_APP_ID: "1:282862193658:android:c423e9488897ace99c3243"
+        PACKAGE_NAME: "com.yemenmarket"
+      flutter: stable
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - android/.gradle
+
+    triggering:
+      events:
+        - push
+
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
+      - name: Build APK
+        script: |
+          flutter build apk --release --build-number=$BUILD_NUMBER
+
+      - name: Upload APK to Firebase App Distribution
+        script: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" | base64 --decode > firebase_key.json
+
+          curl -sL https://firebase.tools | bash
+
+          firebase appdistribution:distribute \
+            build/app/outputs/flutter-apk/app-release.apk \
+            --app "$FIREBASE_APP_ID" \
+            --groups "yemen-testers" \
+            --release-notes "Build $BUILD_NUMBER | Tenant: $TENANT_NAME" \
+            --token "$(cat firebase_key.json)"
+
+      - name: Notify Discord
+        script: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{\"content\":\"🚀 Yemen Market Build Done | Build: $BUILD_NUMBER | Tenant: $TENANT_NAME\"}" \
+          $DISCORD_WEBHOOK
+
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk 
